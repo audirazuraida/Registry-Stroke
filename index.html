@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stroke Registry Dashboard — Kemenkes</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"  />
+<style>
+:root{
+  --teal:#00a9b7; --teal2:#08b6a8; --green:#b7d51b; --navy:#173f52;
+  --bg:#f4f8f8; --card:#fff; --text:#17313b; --muted:#6c7e85;
+  --line:#dce8ea; --danger:#d85a5a; --warning:#e6a83a;
+}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:Inter,Segoe UI,Arial,sans-serif;color:var(--text)}
+button,select,input{font:inherit}
+.topbar{height:72px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;gap:18px}.brand img{width:150px;height:auto}.divider{height:32px;width:1px;background:var(--line)}
+.brand-title{font-size:18px;font-weight:800;color:var(--navy)}.brand-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.user{display:flex;align-items:center;gap:12px}.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--green));color:white;display:grid;place-items:center;font-weight:800}
+.layout{display:block;min-height:calc(100vh - 72px)}
+.topnav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 28px;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 1px 3px rgba(0,0,0,.03)}
+.topnav .nav-label{margin-right:6px;padding:8px 6px;color:#93a5aa}
+.topnav .nav{display:flex;flex-direction:row;gap:5px;flex-wrap:wrap}
+.topnav button{border:0;background:transparent;text-align:center;padding:9px 13px;border-radius:9px;color:#527079;cursor:pointer;font-weight:700}
+.topnav button.active,.topnav button:hover{background:#e8f8f7;color:#008f98}
+.topnav .nav-system{margin-left:auto}
+.topnav .status{font-size:10px;color:#789098;padding-left:8px}
+.nav-label{font-size:10px;font-weight:800;color:#93a5aa;text-transform:uppercase;padding:8px 12px}.nav{display:flex;flex-direction:column;gap:5px}.nav button{border:0;background:transparent;text-align:left;padding:12px 14px;border-radius:10px;color:#527079;cursor:pointer;font-weight:700}.nav button.active,.nav button:hover{background:#e8f8f7;color:#008f98}.side-status{margin-top:28px;padding:14px;border-radius:12px;background:#f1faf9;border:1px solid #d7eeeb}.dot{width:8px;height:8px;border-radius:50%;background:#25b779;display:inline-block;margin-right:6px}
+.main{flex:1;padding:24px 28px 40px;max-width:1600px;margin:auto;width:100%}
+.pagehead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}.eyebrow{font-size:12px;color:#008f98;font-weight:800;text-transform:uppercase;letter-spacing:.05em}.pagehead h1{margin:4px 0 5px;font-size:28px;color:var(--navy)}.pagehead p{margin:0;color:var(--muted);font-size:13px}
+.actions{display:flex;gap:8px;align-items:center}.btn{border:1px solid var(--line);background:white;color:var(--navy);padding:9px 13px;border-radius:9px;cursor:pointer;font-weight:700}.btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}.btn:hover{filter:brightness(.98)}
+.refresh{font-size:11px;color:var(--muted);text-align:right;margin-top:7px}
+.filters{background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px;display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:10px;margin-bottom:18px;box-shadow:0 2px 8px rgba(23,63,82,.04)}
+.field label{display:block;font-size:10px;text-transform:uppercase;color:#789098;font-weight:800;margin:0 0 5px}.field select,.field input{width:100%;border:1px solid #d5e2e5;background:#fbfdfd;padding:9px 10px;border-radius:8px;color:var(--text);outline:none}.field select:focus,.field input:focus{border-color:var(--teal)}
+.filter-actions{display:flex;gap:7px;align-items:end}.filter-actions button{height:38px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px;box-shadow:0 2px 8px rgba(23,63,82,.04)}.kpi .top{display:flex;justify-content:space-between;color:#688087;font-size:12px;font-weight:700}.kpi .value{font-size:29px;font-weight:850;color:var(--navy);margin-top:9px}.kpi .delta{font-size:11px;margin-top:6px;color:#23a478}.kpi .icon{width:34px;height:34px;border-radius:9px;background:#e7f8f7;display:grid;place-items:center;color:#009aa4;font-weight:900}
+.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:16px}.grid.three{grid-template-columns:1fr 1fr 1fr}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px;box-shadow:0 2px 8px rgba(23,63,82,.04)}.cardhead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}.card h3{font-size:14px;margin:0;color:var(--navy)}.card small{font-size:10px;color:var(--muted)}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:16px}.tab{border:0;background:transparent;padding:10px 15px;cursor:pointer;color:#688087;font-weight:800}.tab.active{color:#008f98;border-bottom:3px solid var(--teal)}
+.chart{height:250px;position:relative}.chart svg{width:100%;height:100%}.legend{display:flex;gap:16px;font-size:10px;color:#657b83;margin-top:4px}.legend span:before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;background:var(--teal)}.legend .new:before{background:var(--green)}.legend .rec:before{background:#597c8d}
+.donutwrap{display:flex;align-items:center;justify-content:center;gap:25px;height:230px}.donut{width:155px;height:155px;border-radius:50%;background:conic-gradient(var(--teal) 0 68%,var(--green) 68% 100%);position:relative}.donut:after{content:"";position:absolute;inset:34px;background:white;border-radius:50%}.center{position:absolute;inset:0;display:grid;place-items:center;z-index:2;font-size:20px;font-weight:900;color:var(--navy)}
+.mapbox{height:430px;background:#f8fbfb;border-radius:10px;position:relative;overflow:hidden;border:1px solid #edf3f4}.leaflet-map{height:100%;width:100%;border-radius:10px}.leaflet-container{font-family:Inter,Segoe UI,Arial,sans-serif;background:#eef6f5}.leaflet-control.info-box{padding:10px 13px;background:rgba(255,255,255,.96);box-shadow:0 2px 12px rgba(23,63,82,.15);border-radius:10px;color:#17313b;border:1px solid #dce8ea;font-size:11px;line-height:1.5}.info-box h4{margin:0 0 4px;color:#007f89;font-size:12px}.map-legend{line-height:18px;color:#506970;background:rgba(255,255,255,.96);padding:9px 10px;border-radius:9px;box-shadow:0 2px 12px rgba(23,63,82,.15);border:1px solid #dce8ea;font-size:10px}.map-legend i{width:18px;height:12px;float:left;margin-right:7px;opacity:.85;border-radius:2px}.map-note{position:absolute;left:10px;bottom:10px;z-index:500;font-size:9px;color:#678087;background:rgba(255,255,255,.9);padding:5px 7px;border-radius:6px}
+.bars{height:225px;display:flex;align-items:end;gap:13px;padding:15px 12px 8px}.barcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:end;height:100%}.bar{width:70%;max-width:42px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,var(--teal),#5ccac5)}.barlabel{font-size:9px;color:#7b8d93;margin-top:7px}.barvalue{font-size:9px;font-weight:800;color:#48636c;margin-bottom:3px}
+.quality{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.quality-item{border:1px solid var(--line);border-radius:11px;padding:13px}.qtop{display:flex;justify-content:space-between;font-size:11px;font-weight:800}.progress{height:8px;background:#edf3f4;border-radius:20px;margin-top:11px;overflow:hidden}.progress span{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--green));border-radius:20px}.target{font-size:10px;color:var(--muted);margin-top:7px}
+.tablewrap{overflow:auto}.data-table{width:100%;border-collapse:collapse;font-size:11px}.data-table th{background:#f2f8f8;color:#587078;text-align:left;padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}.data-table td{padding:10px;border-bottom:1px solid #edf2f3;white-space:nowrap}.pill{padding:4px 7px;border-radius:20px;background:#e9f8f5;color:#078f81;font-weight:800}.pill.red{background:#fff0f0;color:#c45d5d}
+.drill{display:none;background:#eef9f8;border:1px solid #cdebe8;border-radius:12px;padding:12px;margin-bottom:16px}.drill.show{display:flex;justify-content:space-between;align-items:center}.drill strong{color:#007f89}
+.footer{font-size:10px;color:#8b9ba0;text-align:right;margin-top:15px}
+.modal{display:none;position:fixed;inset:0;background:rgba(20,45,54,.45);z-index:50;align-items:center;justify-content:center}.modal.show{display:flex}.modalbox{background:#fff;border-radius:15px;width:min(850px,92vw);max-height:85vh;overflow:auto;padding:20px}.modalhead{display:flex;justify-content:space-between;align-items:center}.close{border:0;background:#edf5f5;border-radius:8px;padding:7px 10px;cursor:pointer}
+@media(max-width:1100px){.filters{grid-template-columns:repeat(3,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}.grid,.grid.three{grid-template-columns:1fr}.topnav{padding:10px 18px}.topnav .nav-system{margin-left:0}}
+@media(max-width:700px){.main{padding:15px}.filters{grid-template-columns:1fr 1fr}.kpis{grid-template-columns:1fr}.topbar{padding:0 12px}.brand-sub,.divider{display:none}.brand img{width:120px}.pagehead{display:block}.actions{margin-top:12px}.quality{grid-template-columns:1fr}.topnav{padding:8px 10px;gap:3px}.topnav .nav-label{display:none}.topnav .nav{width:100%;overflow-x:auto;flex-wrap:nowrap}.topnav button{white-space:nowrap}.topnav .nav-system{width:auto}.topnav .status{display:none}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <img src="https://www.kemkes.go.id/app_asset/file_content_download/170619174165b26b7d195019.13538774.png" alt="Logo Kementerian Kesehatan Republik Indonesia">
+    <div class="divider"></div>
+    <div><div class="brand-title">Stroke Registry Dashboard</div><div class="brand-sub">SATUSEHAT • National Stroke Monitoring</div></div>
+  </div>
+  <div class="user"><div style="text-align:right"><b style="font-size:12px">User</b><div style="font-size:10px;color:#789098">Ministry of Health</div></div><div class="avatar">U</div></div>
+</header>
+
+<nav class="topnav" aria-label="Dashboard navigation">
+  <div class="nav-label">Monitoring</div>
+  <div class="nav">
+    <button class="active" onclick="showTab('overview',this)">▦ Overview</button>
+    <button onclick="showTab('epidemiology',this)">◔ Epidemiology</button>
+    <button onclick="showTab('quality',this)">◷ Service Quality</button>
+    <button onclick="showTab('outcome',this)">◉ Clinical Outcome</button>
+    <button onclick="showTab('cases',this)">☷ Case Details</button>
+  </div>
+  <div class="nav nav-system">
+    <button onclick="openModal()">ⓘ Data &amp; FHIR</button>
+  </div>
+  <div class="status"><span class="dot"></span>Data connection active</div>
+</nav>
+
+<div class="layout">
+
+
+<main class="main">
+  <div class="pagehead">
+    <div><div class="eyebrow">National Monitoring</div><h1 id="pageTitle">Stroke Registry Overview</h1><p>Monitoring epidemiology, service quality, and clinical outcomes for stroke in FKRTL facilities.</p></div>
+    <div class="actions"><button class="btn" onclick="resetFilters()">↺ Reset</button><button class="btn primary" onclick="exportCSV()">⇩ Export CSV</button></div>
+  </div>
+
+  <div class="refresh">Data status: <b style="color:#149b79">● Up to date</b> &nbsp;|&nbsp; Last data refreshed: <b>16 Sep 2026, 05:30 WIB</b></div>
+
+  <section class="filters">
+    <div class="field"><label>Date From</label><input type="date" id="from" value="2026-01-01"></div>
+    <div class="field"><label>Date To</label><input type="date" id="to" value="2026-09-16"></div>
+    <div class="field"><label>Year</label><select id="year"><option>2026</option><option>2025</option><option>2024</option></select></div>
+    <div class="field"><label>Province</label><select id="province" onchange="cascade()"><option value="All">All Provinces</option><option>DKI Jakarta</option><option>Jawa Barat</option><option>Jawa Tengah</option><option>Jawa Timur</option><option>Sumatera Utara</option><option>Sulawesi Selatan</option><option>Papua</option></select></div>
+    <div class="field"><label>Regency / City</label><select id="city"><option>All Regencies / Cities</option></select></div>
+    <div class="field"><label>Sex</label><select id="sex"><option>All</option><option>Male</option><option>Female</option></select></div>
+    <div class="field"><label>Age Category</label><select id="age"><option>All</option><option>&lt;45</option><option>45–65</option><option>&gt;65</option></select></div>
+    <div class="field"><label>Healthcare Facility</label><select id="facility"><option>All FKRTL Facilities</option><option>RSUP Fatmawati</option><option>RSUP Dr. Kariadi</option><option>RSUP Dr. Sardjito</option><option>RSUD Bandung</option></select></div>
+    <div class="filter-actions"><button class="btn primary" onclick="applyFilters()">Apply Filters</button></div>
+  </section>
+
+  <div id="drill" class="drill"><div>Province drill-down: <strong id="drillName">—</strong> <span style="color:#688087">• Regency/City level</span></div><button class="btn" onclick="clearDrill()">Clear</button></div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('overview',this)">Overview</button>
+    <button class="tab" onclick="showTab('epidemiology',this)">Epidemiology</button>
+    <button class="tab" onclick="showTab('quality',this)">Service Quality</button>
+    <button class="tab" onclick="showTab('outcome',this)">Clinical Outcome</button>
+    <button class="tab" onclick="showTab('cases',this)">Case Details</button>
+  </div>
+
+  <section id="overview" class="tabpage">
+    <div class="kpis">
+      <div class="kpi"><div class="top"><span>Total Stroke Cases</span><span class="icon">Σ</span></div><div class="value" id="total">12,458</div><div class="delta">▲ 4.8% vs previous period</div></div>
+      <div class="kpi"><div class="top"><span>New Stroke Cases</span><span class="icon">+</span></div><div class="value" id="new">8,932</div><div class="delta">▲ 3.2% vs previous period</div></div>
+      <div class="kpi"><div class="top"><span>Average Age</span><span class="icon">◌</span></div><div class="value" id="avgAge">65.5</div><div class="delta">years • new stroke cases</div></div>
+      <div class="kpi"><div class="top"><span>In-Hospital Mortality</span><span class="icon">!</span></div><div class="value" id="mortality">6.1%</div><div class="delta" style="color:#b07827">760 cases</div></div>
+    </div>
+    <div class="grid">
+      <div class="card"><div class="cardhead"><div><h3>Stroke Cases Trend</h3><small>Monthly • Total, New, Recurrent</small></div><small>Hover points</small></div>
+        <div class="chart">
+          <svg viewBox="0 0 700 250" preserveAspectRatio="none">
+            <g stroke="#e6eff0" stroke-width="1"><line x1="45" y1="25" x2="680" y2="25"/><line x1="45" y1="80" x2="680" y2="80"/><line x1="45" y1="135" x2="680" y2="135"/><line x1="45" y1="190" x2="680" y2="190"/><line x1="45" y1="225" x2="680" y2="225"/></g>
+            <polyline points="45,178 105,163 165,170 225,145 285,150 345,118 405,130 465,92 525,112 585,70 645,93 680,78" fill="none" stroke="#00a9b7" stroke-width="4"/>
+            <polyline points="45,194 105,183 165,188 225,169 285,173 345,148 405,156 465,126 525,139 585,104 645,123 680,113" fill="none" stroke="#b7d51b" stroke-width="3"/>
+            <polyline points="45,214 105,207 165,211 225,202 285,204 345,193 405,197 465,180 525,190 585,168 645,178 680,173" fill="none" stroke="#597c8d" stroke-width="2"/>
+            <g fill="#71858c" font-size="10"><text x="45" y="244">Oct</text><text x="160" y="244">Nov</text><text x="275" y="244">Dec</text><text x="390" y="244">Jan</text><text x="505" y="244">Feb</text><text x="620" y="244">Mar</text></g>
+          </svg>
+        </div>
+        <div class="legend"><span>Total Stroke</span><span class="new">New Stroke</span><span class="rec">Recurrent Stroke</span></div>
+      </div>
+      <div class="card"><div class="cardhead"><div><h3>Stroke Type Distribution</h3><small>Ischemic vs Hemorrhagic</small></div></div>
+        <div class="donutwrap"><div class="donut"><div class="center">12,458</div></div><div style="font-size:11px;line-height:2.1"><div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--teal)"></span> Ischemic <b>68%</b></div><div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green)"></span> Hemorrhagic <b>32%</b></div></div></div>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="card"><div class="cardhead"><div><h3>Case Distribution by Province</h3><small>Click a province for Regency/City drill-down</small></div><small>38 provinces</small></div>
+        <div class="mapbox">
+          <div id="strokeMap" class="leaflet-map"></div>
+          <div class="map-note">Click a province for Regency/City drill-down • values are prototype data</div>
+        </div>
+      </div>
+      <div class="card"><div class="cardhead"><div><h3>Age Group Distribution</h3><small>New stroke cases</small></div></div>
+        <div class="bars"><div class="barcol"><div class="barvalue">12%</div><div class="bar" style="height:70px"></div><div class="barlabel">&lt;45</div></div><div class="barcol"><div class="barvalue">37%</div><div class="bar" style="height:140px"></div><div class="barlabel">45–65</div></div><div class="barcol"><div class="barvalue">51%</div><div class="bar" style="height:185px"></div><div class="barlabel">&gt;65</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="epidemiology" class="tabpage" style="display:none">
+    <div class="grid three">
+      <div class="kpi"><div class="top"><span>Total Stroke Cases</span><span class="icon">Σ</span></div><div class="value">12,458</div><div class="delta">Monthly registry volume</div></div>
+      <div class="kpi"><div class="top"><span>New Cases</span><span class="icon">+</span></div><div class="value">8,932</div><div class="delta">71.7% of total</div></div>
+      <div class="kpi"><div class="top"><span>Recurrent Cases</span><span class="icon">↻</span></div><div class="value">3,526</div><div class="delta">28.3% of total</div></div>
+    </div>
+    <div class="grid"><div class="card"><div class="cardhead"><h3>Monthly Stroke Trend</h3><small>Month / quarterly aggregation</small></div><div class="chart"><svg viewBox="0 0 700 250"><polyline points="20,200 100,170 180,180 260,130 340,145 420,90 500,110 580,55 680,85" fill="none" stroke="#00a9b7" stroke-width="5"/><polyline points="20,220 100,200 180,210 260,165 340,180 420,135 500,150 580,105 680,130" fill="none" stroke="#b7d51b" stroke-width="4"/></svg></div></div>
+      <div class="card"><div class="cardhead"><h3>Sex Distribution</h3><small>Male / Female</small></div><div class="donutwrap"><div class="donut" style="background:conic-gradient(var(--teal) 0 59%,var(--green) 59% 100%)"><div class="center">59%</div></div><div style="font-size:12px;line-height:2"><div>Male <b>59%</b></div><div>Female <b>41%</b></div></div></div></div></div>
+  </section>
+
+  <section id="quality" class="tabpage" style="display:none">
+    <div class="card"><div class="cardhead"><div><h3>Service Quality Indicators</h3><small>Monthly performance by healthcare facility</small></div></div>
+      <div class="quality">
+        <div class="quality-item"><div class="qtop"><span>CT-Scan ≤ 30 min</span><b>87%</b></div><div class="progress"><span style="width:87%"></span></div><div class="target">Target &gt;90%</div></div>
+        <div class="quality-item"><div class="qtop"><span>Thrombolysis &lt;4.5h</span><b>42%</b></div><div class="progress"><span style="width:42%"></span></div><div class="target">Eligible onset cases</div></div>
+        <div class="quality-item"><div class="qtop"><span>Door-to-Needle ≤60m</span><b>61%</b></div><div class="progress"><span style="width:61%"></span></div><div class="target">Target-based indicator</div></div>
+        <div class="quality-item"><div class="qtop"><span>NIHSS Recorded</span><b>91%</b></div><div class="progress"><span style="width:91%"></span></div><div class="target">Completeness</div></div>
+        <div class="quality-item"><div class="qtop"><span>Pre-Admission mRS</span><b>76%</b></div><div class="progress"><span style="width:76%"></span></div><div class="target">Completeness</div></div>
+        <div class="quality-item"><div class="qtop"><span>Discharge mRS</span><b>84%</b></div><div class="progress"><span style="width:84%"></span></div><div class="target">mRS 0–2 outcome recording</div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px"><div class="cardhead"><h3>Facility Comparison</h3><small>Illustrative prototype values</small></div><div class="bars"><div class="barcol"><div class="barvalue">93%</div><div class="bar" style="height:185px"></div><div class="barlabel">RSUP A</div></div><div class="barcol"><div class="barvalue">89%</div><div class="bar" style="height:170px"></div><div class="barlabel">RSUP B</div></div><div class="barcol"><div class="barvalue">81%</div><div class="bar" style="height:150px"></div><div class="barlabel">RSUD C</div></div><div class="barcol"><div class="barvalue">76%</div><div class="bar" style="height:135px"></div><div class="barlabel">RSUD D</div></div><div class="barcol"><div class="barvalue">71%</div><div class="bar" style="height:120px"></div><div class="barlabel">RSUD E</div></div></div></div>
+  </section>
+
+  <section id="outcome" class="tabpage" style="display:none">
+    <div class="kpis">
+      <div class="kpi"><div class="top"><span>Discharge mRS 0–2</span><span class="icon">✓</span></div><div class="value">54%</div><div class="delta">Favorable functional outcome</div></div>
+      <div class="kpi"><div class="top"><span>In-Hospital Mortality</span><span class="icon">!</span></div><div class="value">6.1%</div><div class="delta">Based on discharge status</div></div>
+      <div class="kpi"><div class="top"><span>Median Admission NIHSS</span><span class="icon">N</span></div><div class="value">8</div><div class="delta">Illustrative registry metric</div></div>
+      <div class="kpi"><div class="top"><span>mRS Recorded</span><span class="icon">R</span></div><div class="value">84%</div><div class="delta">Completeness</div></div>
+    </div>
+    <div class="grid"><div class="card"><div class="cardhead"><h3>Discharge mRS Distribution</h3><small>Score 0–6</small></div><div class="bars"><div class="barcol"><div class="barvalue">11%</div><div class="bar" style="height:65px"></div><div class="barlabel">0–1</div></div><div class="barcol"><div class="barvalue">43%</div><div class="bar" style="height:150px"></div><div class="barlabel">2–3</div></div><div class="barcol"><div class="barvalue">30%</div><div class="bar" style="height:115px"></div><div class="barlabel">4–5</div></div><div class="barcol"><div class="barvalue">16%</div><div class="bar" style="height:80px"></div><div class="barlabel">6</div></div></div></div><div class="card"><div class="cardhead"><h3>Clinical Outcome Summary</h3><small>Registry interpretation aid</small></div><div style="padding:10px 4px;line-height:1.8;font-size:12px;color:#587078">The dashboard exposes discharge mRS, mortality, NIHSS recording and related outcome indicators so users can monitor clinical outcomes at national, regional and facility levels.</div></div></div>
+  </section>
+
+  <section id="cases" class="tabpage" style="display:none">
+    <div class="card"><div class="cardhead"><div><h3>Stroke Case Details</h3><small>Patient-level detail • patient name anonymized for export</small></div><button class="btn primary" onclick="exportCSV()">⇩ CSV</button></div>
+      <div class="tablewrap"><table class="data-table"><thead><tr><th>No.</th><th>Admission Date</th><th>Patient</th><th>Sex</th><th>Age</th><th>Province</th><th>Kab/Kota</th><th>Facility</th><th>Diagnosis</th><th>Onset</th><th>NIHSS</th><th>CT ≤30m</th><th>D2N ≤60m</th><th>Discharge mRS</th><th>Status</th></tr></thead>
+      <tbody id="caseBody"></tbody></table></div>
+    </div>
+  </section>
+  <div class="footer">Prototype/mock data for UI demonstration • Source requirements: Stroke Registry Dashboard PRD v1.0</div>
+</main>
+</div>
+
+<div class="modal" id="modal"><div class="modalbox"><div class="modalhead"><h3 style="margin:0;color:var(--navy)">Data & FHIR Architecture</h3><button class="close" onclick="closeModal()">✕</button></div><hr style="border:0;border-top:1px solid var(--line)"><p style="font-size:12px;color:#587078">PRD architecture: SATUSEHAT FHIR API / BigQuery Silver → Gold Table (aggregated) → Tableau dashboard, with daily refresh. The registry uses HL7 FHIR R4 resources such as Patient, Organization, Location, Encounter, EpisodeOfCare, Condition, Observation, Procedure, DiagnosticReport and ImagingStudy.</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><div class="quality-item"><b>Source</b><br><small>SATUSEHAT FHIR / BigQuery Silver</small></div><div class="quality-item"><b>Processing</b><br><small>Gold Table — aggregated</small></div><div class="quality-item"><b>Dashboard</b><br><small>Tableau • Daily refresh</small></div></div></div></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" ></script>
+<script>
+const baseCases=[
+["001","16 Sep 2026","Patient-001","Male",72,"DKI Jakarta","Jakarta Selatan","RSUP Fatmawati","Ischemic","08:20","9","Yes","Yes",2,"Alive"],
+["002","15 Sep 2026","Patient-002","Female",61,"Jawa Barat","Bandung","RSUD Bandung","Hemorrhagic","10:05","14","Yes","N/A",4,"Alive"],
+["003","15 Sep 2026","Patient-003","Male",54,"Jawa Tengah","Semarang","RSUP Dr. Kariadi","Ischemic","11:40","6","Yes","Yes",1,"Alive"],
+["004","14 Sep 2026","Patient-004","Female",79,"Jawa Timur","Surabaya","RSUD Surabaya","Ischemic","07:35","18","No","No",6,"Deceased"],
+["005","14 Sep 2026","Patient-005","Male",67,"Sumatera Utara","Medan","RSUP Adam Malik","Ischemic","09:10","11","Yes","Yes",3,"Alive"],
+["006","13 Sep 2026","Patient-006","Male",43,"Sulawesi Selatan","Makassar","RSUP Wahidin","Hemorrhagic","14:20","15","No","N/A",5,"Alive"],
+["007","13 Sep 2026","Patient-007","Female",68,"Papua","Jayapura","RSUD Jayapura","Ischemic","06:55","7","Yes","Yes",2,"Alive"]
+];
+function renderTable(rows=baseCases){document.getElementById("caseBody").innerHTML=rows.map(r=>`<tr>${r.map((x,i)=>`<td>${i===12?`<span class="pill ${x==='No'?'red':''}">${x}</span>`:i===14?`<span class="pill ${x==='Deceased'?'red':''}">${x}</span>`:x}</td>`).join("")}</tr>`).join("")}
+renderTable();
+
+// Real Indonesia 38-province choropleth using Leaflet.
+let strokeMap, provinceLayer, infoControl;
+const provinceValues = {
+  "Aceh":62,"Sumatera Utara":78,"Sumatera Barat":48,"Riau":54,"Jambi":37,"Sumatera Selatan":65,
+  "Bengkulu":31,"Lampung":59,"Kepulauan Bangka Belitung":24,"Kepulauan Riau":29,"DKI Jakarta":91,
+  "Jawa Barat":96,"Jawa Tengah":84,"DI Yogyakarta":44,"Jawa Timur":88,"Banten":73,"Bali":46,
+  "Nusa Tenggara Barat":35,"Nusa Tenggara Timur":27,"Kalimantan Barat":39,"Kalimantan Tengah":28,
+  "Kalimantan Selatan":51,"Kalimantan Timur":57,"Kalimantan Utara":19,"Sulawesi Utara":34,"Sulawesi Tengah":32,
+  "Sulawesi Selatan":61,"Sulawesi Tenggara":26,"Gorontalo":18,"Sulawesi Barat":16,"Maluku":22,"Maluku Utara":20,
+  "Papua Barat":17,"Papua":25,"Papua Barat Daya":14,"Papua Selatan":12,"Papua Tengah":13,"Papua Pegunungan":10
+};
+
+// Normalize GeoJSON province names so different datasets map to the same 38 names.
+const provinceAliases = {
+  "DI YOGYAKARTA":"DI Yogyakarta", "DAERAH ISTIMEWA YOGYAKARTA":"DI Yogyakarta", "YOGYAKARTA":"DI Yogyakarta",
+  "DKI JAKARTA":"DKI Jakarta", "JAKARTA":"DKI Jakarta", "JAKARTA RAYA":"DKI Jakarta",
+  "BANGKA BELITUNG":"Kepulauan Bangka Belitung", "KEPULAUAN BANGKA BELITUNG":"Kepulauan Bangka Belitung",
+  "KEP. BANGKA BELITUNG":"Kepulauan Bangka Belitung", "KEPULAUAN RIAU":"Kepulauan Riau", "KEP. RIAU":"Kepulauan Riau",
+  "NUSA TENGGARA BARAT":"Nusa Tenggara Barat", "NUSA TENGGARA TIMUR":"Nusa Tenggara Timur",
+  "PAPUA BARAT DAYA":"Papua Barat Daya", "PAPUA BARAT":"Papua Barat", "PAPUA SELATAN":"Papua Selatan",
+  "PAPUA TENGAH":"Papua Tengah", "PAPUA PEGUNUNGAN":"Papua Pegunungan", "PAPUA":"Papua",
+  "SUMATERA UTARA":"Sumatera Utara", "SUMATERA BARAT":"Sumatera Barat", "SUMATERA SELATAN":"Sumatera Selatan",
+  "KALIMANTAN BARAT":"Kalimantan Barat", "KALIMANTAN TENGAH":"Kalimantan Tengah", "KALIMANTAN SELATAN":"Kalimantan Selatan",
+  "KALIMANTAN TIMUR":"Kalimantan Timur", "KALIMANTAN UTARA":"Kalimantan Utara",
+  "SULAWESI UTARA":"Sulawesi Utara", "SULAWESI TENGAH":"Sulawesi Tengah", "SULAWESI SELATAN":"Sulawesi Selatan",
+  "SULAWESI TENGGARA":"Sulawesi Tenggara", "SULAWESI BARAT":"Sulawesi Barat", "MALUKU UTARA":"Maluku Utara",
+  "ACEH":"Aceh", "BANTEN":"Banten", "BALI":"Bali", "BENGKULU":"Bengkulu", "GORONTALO":"Gorontalo", "JAMBI":"Jambi",
+  "JAWA BARAT":"Jawa Barat", "JAWA TENGAH":"Jawa Tengah", "JAWA TIMUR":"Jawa Timur", "LAMPUNG":"Lampung",
+  "MALUKU":"Maluku", "RIAU":"Riau"
+};
+function provinceName(props){
+  const raw = props?.PROVINSI || props?.Propinsi || props?.propinsi || props?.Provinsi || props?.name || props?.NAME_1 || props?.province || '';
+  const key = String(raw).trim().toUpperCase().replace(/\s+/g,' ');
+  return provinceAliases[key] || String(raw).trim() || 'Unknown Province';
+}
+function choroplethColor(v){
+  if(v >= 90) return '#006b70';
+  if(v >= 75) return '#008f8f';
+  if(v >= 60) return '#1aa89d';
+  if(v >= 45) return '#55beb0';
+  if(v >= 30) return '#86d0c2';
+  if(v >= 15) return '#b7e3d9';
+  return '#e0f1ec';
+}
+function mapStyle(feature){
+  const name=provinceName(feature.properties||{});
+  const value=provinceValues[name];
+  return {fillColor:choroplethColor(value ?? 0),weight:1,color:'#ffffff',opacity:1,fillOpacity:.9};
+}
+function initStrokeMap(){
+  const el=document.getElementById('strokeMap');
+  if(!el || typeof L==='undefined') return;
+  strokeMap=L.map(el,{zoomControl:true,scrollWheelZoom:false,attributionControl:true,minZoom:3,maxZoom:8}).setView([-2.5,118],4.2);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:8}).addTo(strokeMap);
+
+  infoControl=L.control({position:'topright'});
+  infoControl.onAdd=function(){this._div=L.DomUtil.create('div','leaflet-control info-box');this.update();return this._div};
+  infoControl.update=function(props){
+    if(props){
+      const n=provinceName(props); const v=provinceValues[n] ?? 0;
+      this._div.innerHTML=`<h4>Stroke Registry</h4><b>${n}</b><br>Cases index: <b>${v}</b>`;
+    } else this._div.innerHTML='<h4>Stroke Registry</h4>Select a province';
+  };
+  infoControl.addTo(strokeMap);
+
+  const legend=L.control({position:'bottomright'});
+  legend.onAdd=function(){
+    const div=L.DomUtil.create('div','map-legend');
+    const grades=[0,15,30,45,60,75,90];
+    let h='<b>Stroke cases index</b><br>';
+    for(let i=0;i<grades.length;i++){
+      const from=grades[i], to=grades[i+1];
+      h+=`<i style="background:${choroplethColor(from+0.1)}"></i>${from}${to!==undefined?'–'+to:'+'}<br>`;
+    }
+    div.innerHTML=h; return div;
+  };
+  legend.addTo(strokeMap);
+
+  // 38-province GeoJSON: current province boundaries, including the six Papua provinces.
+  const url='https://raw.githubusercontent.com/denyherianto/indonesia-geojson-topojson-maps-with-38-provinces/main/GeoJSON/indonesia-38-provinces.geojson';
+  fetch(url).then(r=>{if(!r.ok)throw new Error('GeoJSON request failed: '+r.status);return r.json()}).then(data=>{
+    provinceLayer=L.geoJSON(data,{
+      style:mapStyle,
+      onEachFeature:function(feature,layer){
+        const n=provinceName(feature.properties||{}); const v=provinceValues[n] ?? 0;
+        layer.bindTooltip(`<b>${n}</b><br>Stroke cases index: ${v}`,{sticky:true,direction:'top'});
+        layer.on({
+          mouseover:e=>{e.target.setStyle({weight:2.5,color:'#006f73',fillOpacity:1});e.target.bringToFront();infoControl.update(feature.properties)},
+          mouseout:e=>{provinceLayer.resetStyle(e.target);infoControl.update()},
+          click:e=>{strokeMap.fitBounds(e.target.getBounds(),{padding:[18,18],maxZoom:7});drill(n)}
+        });
+      }
+    }).addTo(strokeMap);
+    const bounds=provinceLayer.getBounds();
+    if(bounds.isValid()) strokeMap.fitBounds(bounds,{paddingTopLeft:[15,15],paddingBottomRight:[15,15],maxZoom:5});
+    setTimeout(()=>strokeMap.invalidateSize(),100);
+  }).catch(err=>{
+    el.innerHTML='<div style="padding:24px;color:#b45d5d;font-size:12px;line-height:1.5"><b>Map data could not be loaded.</b><br>Please open the HTML with an internet connection.</div>';
+    console.error(err);
+  });
+}
+initStrokeMap();
+function showTab(id,el){
+ document.querySelectorAll('.tabpage').forEach(x=>x.style.display='none'); document.getElementById(id).style.display='block';
+ document.querySelectorAll('.tab,.nav button').forEach(x=>x.classList.remove('active')); if(el) el.classList.add('active');
+ const titles={overview:'Stroke Registry Overview',epidemiology:'Epidemiology Monitoring',quality:'Service Quality Monitoring',outcome:'Clinical Outcome Monitoring',cases:'Stroke Case Details'};
+ document.getElementById('pageTitle').textContent=titles[id];
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+function cascade(){const p=document.getElementById('province').value;const c=document.getElementById('city');let arr=p==='DKI Jakarta'?['All Regencies / Cities','Jakarta Selatan','Jakarta Timur','Jakarta Barat']:p==='Jawa Barat'?['All Regencies / Cities','Bandung','Bekasi','Bogor']:p==='Jawa Tengah'?['All Regencies / Cities','Semarang','Surakarta']:['All Regencies / Cities'];c.innerHTML=arr.map(x=>`<option>${x}</option>`).join('')}
+function applyFilters(){
+ const p=document.getElementById('province').value, s=document.getElementById('sex').value, a=document.getElementById('age').value, f=document.getElementById('facility').value;
+ let rows=baseCases.filter(r=>(p==='All'||r[5]===p)&&(s==='All'||r[3]===s)&&(a==='All'||(a==='<45'?r[4]<45:a==='45–65'?r[4]>=45&&r[4]<=65:r[4]>65))&&(f==='All FKRTL Facilities'||r[7]===f));
+ renderTable(rows);
+ const mult=Math.max(.55,Math.min(1.05,rows.length/baseCases.length));
+ document.getElementById('total').textContent=Math.round(12458*mult).toLocaleString('en-US');
+ document.getElementById('new').textContent=Math.round(8932*mult).toLocaleString('en-US');
+ document.getElementById('avgAge').textContent=rows.length?(rows.reduce((a,r)=>a+r[4],0)/rows.length).toFixed(1):'—';
+ document.getElementById('mortality').textContent=rows.length?((rows.filter(r=>r[14]==='Deceased').length/rows.length)*100).toFixed(1)+'%':'—';
+}
+function resetFilters(){document.querySelectorAll('.filters select').forEach(s=>s.selectedIndex=0);document.getElementById('from').value='2026-01-01';document.getElementById('to').value='2026-09-16';cascade();clearDrill();applyFilters()}
+function drill(name){document.getElementById('drillName').textContent=name;document.getElementById('drill').classList.add('show');document.getElementById('province').value=name;cascade();applyFilters()}
+function clearDrill(){document.getElementById('drill').classList.remove('show')}
+function exportCSV(){
+ const headers=["No","Admission Date","Patient","Sex","Age","Province","Kab/Kota","Healthcare Facility","Diagnosis","Onset","Admission NIHSS","CT Scan <=30m","D2N <=60m","Discharge mRS","Status"];
+ const rows=[headers,...baseCases];
+ const csv=rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(",")).join("\\n");
+ const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="stroke-registry-cases.csv";a.click();URL.revokeObjectURL(a.href);
+}
+function openModal(){document.getElementById('modal').classList.add('show')}function closeModal(){document.getElementById('modal').classList.remove('show')}
+</script>
+</body>
+</html>
